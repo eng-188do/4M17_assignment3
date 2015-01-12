@@ -1,0 +1,285 @@
+/**
+ * 
+ */
+package ex3.swarm_specifics;
+
+import java.util.*;
+
+import ex3.FunctionDef;
+import ex3.control_parameters.ControlParamsS;
+import ex3.coordinate_holder.Vector2;
+import ex3.exceptions.AttributeNotCalulatedException;
+import ex3.exceptions.FunctionEvalLimitException;
+import ex3.loggers.BirdLogger;
+import ex3.loggers.FunctionCallLogger;
+
+/**
+ * @author eng-188do
+ * Class to act as a bird in the swarm optimisation.
+ */
+public final class Bird extends Vector2 {
+	//Constructor
+	/**
+	 * Constructor
+	 * @param logger : function call logger
+	 * @param x : x coord (x_1)
+	 * @param y : y coord (x_2 on assignment sheet)
+	 * @param rndIn : random number generator
+	 * @param logIn : log for the birds
+	 * @param cntrlIn : control parameters class
+	 * @param birdIdIn : bird's id, this should be unique, and is used for tracking birds in the log.
+	 */
+	Bird(FunctionCallLogger logger,double x, double y, Random rndIn, BirdLogger logIn, ControlParamsS cntrlIn, int birdIdIn){
+		super(logger, x, y);
+		this.rnd=rndIn; //copy ref
+		this.log=logIn;
+		this.cntrl=cntrlIn;
+		this.birdId=birdIdIn;
+	}
+	
+	/**
+	 * Copy constructor
+	 * @param copy : bird we are taking a copy of.
+	 */
+	Bird(Bird copy){
+		super(copy);
+		this.counter=copy.counter;
+		this.bestCoords=new Vector2(copy.bestCoords);
+		this.worstCoords=new Vector2(worstCoords);
+		this.offEdgeFlag=copy.offEdgeFlag;
+		System.arraycopy(copy.velocity, 0, this.velocity, 0, copy.velocity.length); //performs shallow copy (but on double so effectively deep).
+		this.rnd=copy.rnd; //copy ref
+		this.log=copy.log;
+		this.cntrl=copy.cntrl;
+		this.birdId=copy.birdId;
+	}
+	
+	//Members
+	private int counter=0; //measures how many steps the bird has taken.
+	private Vector2 bestCoords; //measures the best coordinates witnessed personally by this bird.
+	private Vector2 worstCoords; //measures the worst coordinates witnessed personally by this bird.
+	private boolean offEdgeFlag; //flag set to true when inside the allowable region and not on the edge.
+	private double[] velocity=new double[2]; //{xvelocity,yvelocity}
+	Random rnd; //random number generator
+	BirdLogger log; //log for birds.
+	ControlParamsS cntrl; //control parameters for birds.
+	public final int birdId; //stores the unique identifier of the bird.
+	
+	//Methods
+	/**
+	 * Initialise all the bird fields. 
+	 * position is random, velocity is as set in the control parameters
+	 * @throws FunctionEvalLimitException
+	 */
+	public void initialise() throws FunctionEvalLimitException{
+		//generate random x's and y's
+		double x=FunctionDef.genRandomX(rnd);
+		double y=FunctionDef.genRandomY(rnd);
+		offEdgeFlag=true; //should have generated it inside the region
+		assert FunctionDef.checkInRange(x, y) : 
+			"Generating initial birds outside allowable region"; //check in debug mode that working as expected.
+		
+		//set the point and make sure the value has been calculated
+		this.setCoord(x, y); //set position
+		this.getValue(); //make sure velocity is calulated
+		bestCoords=new Vector2(this); //put a copy into best point
+		worstCoords=new Vector2(this); //puty a copy into worst point
+		velocity[0]=cntrl.getInitialXVel(); //set up velocities.
+		velocity[1]=cntrl.getInitialYvel();
+
+		//finally chuck the entry into the log.
+		addToLog();
+	}
+	
+	
+	/**
+	 * Updates the bird by calculating its velocity and then applying it.
+	 * @param otherBirds : list of other birds so we can find the best one.
+	 * @throws FunctionEvalLimitException
+	 */
+	public void updateBird(ArrayList<Bird> otherBirds) throws FunctionEvalLimitException{
+		updateVel(otherBirds);
+		
+		//find and set the new coordinates
+		double[] newCoords=updateCoords();
+		this.setCoord(newCoords[0], newCoords[1]);
+		
+		//update counter and put in log if inside.
+		counter++;
+		assert FunctionDef.checkInRange(this.getCoordX(), this.getCoordY()) : "birds have escaped!";
+		this.getValue();//make sure if we adding to log we have value.
+		addToLog();
+
+		//update best and worst positions if applicable
+		if (this.getValue()<bestCoords.getValue())
+			bestCoords=new Vector2(this); //assign a copy
+		if (this.getValue()>worstCoords.getValue())
+			worstCoords=new Vector2(this);
+		
+		
+	}
+	
+	
+	/**
+	 * Updates the coordinates by adding the velocities to each coordinate.
+	 * If the bird was going to stray off the region it is brought back and positioned on the edge with the relevant values set.
+	 * the velocity in that direction is set to 0.
+	 * @return : new coordinates
+	 */
+	private  double[] updateCoords(){
+		double x=this.getCoordX()+velocity[0]; //set out where we want to go if no boundaries
+		double y=this.getCoordY()+velocity[1];
+
+		offEdgeFlag=true;	//assume for now we are off the edge - will correct later if not.		
+		x=setInRange(x, FunctionDef.xlow, FunctionDef.xhigh, 0); //check whether strayed over x boundary
+		y=setInRange(y, FunctionDef.ylow, FunctionDef.yhigh, 1); //check whether strayed over y boundary
+		
+		double[] newCoordinates={x,y};
+		return newCoordinates;
+	}
+	
+	/**
+	 * Checks a particular coordinate for in range. if it isn't then it sets it to boundary and the velocity to 0.
+	 * @param value : coordinates current value.
+	 * @param lowBound : the coordinate's lower bound
+	 * @param highBound : the coordinate's upper bound
+	 * @param index : the index of the coordinate
+	 * @return the coordinate
+	 */
+	private double setInRange(double value, double lowBound, double highBound, int index){
+		if(value<lowBound) { //check whether strayed over y boundary.
+			value=lowBound;
+			offEdgeFlag=false;
+			velocity[index]=0;
+		} else if (value>highBound){
+			value=highBound;
+			offEdgeFlag=false;
+			velocity[index]=0;
+		} 
+		return value;
+	}
+	
+	/**
+	 * Updates the velocity of the bird
+	 * @param otherBirds : list of the other birds in the flock.
+	 * @throws FunctionEvalLimitException
+	 */
+	private void updateVel(ArrayList<Bird> otherBirds) throws FunctionEvalLimitException {		
+		//get the best point's  (of the whole flock).
+		double[] bestCoords=findBestBirdCoords( otherBirds);
+		
+		//get the neighbour's bird best point coords
+		double[] neighbourCoord=neighbourCoords(otherBirds);
+		
+		setVelComponent(0,bestCoords[0],neighbourCoord[0],this.bestCoords.getCoordX(),this.worstCoords.getCoordX(), this.getCoordX()); //set x velocity
+		setVelComponent(1,bestCoords[1],neighbourCoord[1],this.bestCoords.getCoordY(),this.worstCoords.getCoordY(), this.getCoordY()); //set y velocity
+		
+	}
+
+
+
+
+	/**
+	 * Sets a particular velocity component
+	 * @param index : index of the velocity component we are setting. signifies the coordinate of interest.
+	 * @param bestCoord : the corresponding position coordinate of the best point found by the rest of the birds in the flock.
+	 * @param bestNeighbourCoord : the coordinate corresponding to the best point found by this bird's neighbour
+	 * @param bestSelfCoord : the coordinate corresponding to the best point found by this bird
+	 * @param worstSelfCoord : the coordinate corresponding to the worst point found by this bird
+	 * @param currentCoord : the current value of the coordinate of interest for this bird.
+	 */
+	private void setVelComponent(int index, double bestCoord, double bestNeighbourCoord, double bestSelfCoord,
+			double worstSelfCoord, double currentCoord) {
+		
+		double currentVel=velocity[index];
+		currentVel*=cntrl.getStiffness(); //scale by stiffness
+		
+		if (!offEdgeFlag){ //if outside the allowed area push it back towards by an amount proportional to how far it is outside
+			currentVel=0.1*(FunctionDef.centre[index]-currentCoord); //kickstart it in the right direction.
+		} else{ //otherwise continue by adding different factors.
+			currentVel+=cntrl.getsSocial()*(bestCoord-currentCoord); //head towards the best point of the rest of the flock
+			currentVel+=cntrl.getsNeighbour()*(bestNeighbourCoord-currentCoord); //head towards the neighbours's best point.
+			currentVel+=cntrl.getsCognition()*(bestSelfCoord-currentCoord); //head towards own best point
+			currentVel+=-cntrl.getsAvoid()*(worstSelfCoord-currentCoord); //head away from own worst point
+			currentVel+=cntrl.getCraziness()*rnd.nextGaussian(); //add some craziness
+		}
+		
+		velocity[index]=currentVel; //update velocity
+	}
+
+	/**
+	 * Finds the best point found by the rest of the flock.
+	 * @param otherBirds : the rest of the flock.
+	 * @return : best point found by the rest of the flock.
+	 * @throws FunctionEvalLimitException
+	 */
+	private double[] findBestBirdCoords(ArrayList<Bird> otherBirds) throws FunctionEvalLimitException{
+		double min=otherBirds.get(0).bestCoords.getValue(); //set minimum as the first bird.
+		double[] coords={otherBirds.get(0).bestCoords.getCoordX(),otherBirds.get(0).bestCoords.getCoordY()};
+		double coordsOut;
+		
+		for(Bird eachBird: otherBirds){
+			if(min>eachBird.bestCoords.getValue()){ //if this bird has a better value than the other then set it as the minimum.
+				min=eachBird.bestCoords.getValue();
+				coords=new double[2];
+				coords[0]=eachBird.bestCoords.getCoordX();
+				coords[1]=eachBird.bestCoords.getCoordY();				
+			}
+		}
+		
+		return coords;
+	}
+
+	/**
+	 * Loops through the birds and finds the one currently closest.
+	 * @param otherBirds : rest of flock.
+	 * @return :  the coordinates of the best point found by the neighbouring bird. 
+	 */
+	private double[] neighbourCoords(ArrayList<Bird> otherBirds) {
+		//initially set the first bird as the closest.
+		double closest=calcDistanceToBird(otherBirds.get(0));
+		double[] coords={otherBirds.get(0).bestCoords.getCoordX(),otherBirds.get(0).bestCoords.getCoordY()};
+		
+		for(Bird eachBird: otherBirds){
+			if (calcDistanceToBird(eachBird)<closest){ //if closer set this as the new closest bird.
+				coords[0]=eachBird.bestCoords.getCoordX();
+				coords[1]=eachBird.bestCoords.getCoordY();
+				closest=calcDistanceToBird(eachBird);
+			}
+		}
+		return coords;
+	}
+
+	/**
+	 * Adds the bird to the bird logger.
+	 */
+	private void addToLog(){
+		try {
+			double[] coords={this.getCoordX(), this.getCoordY()};
+			double val = this.getValue();
+			log.addMember(birdId, coords, val, velocity, counter);
+		} catch (FunctionEvalLimitException e) { //should have calculated value by this point. so my problem if exception.
+			e.printStackTrace();
+			throw new AttributeNotCalulatedException();
+		}		
+	}
+	
+	/**
+	 * Calculates the distance from this bird to another.
+	 * @param other : the 'another' bird.
+	 * @return : the euclidean distance between the two birds.
+	 */
+	private double calcDistanceToBird(Bird other){
+		//get other bird's coordinates
+		double xOther=other.getCoordX();
+		double yOther=other.getCoordY();
+		
+		//calculate the changes in x and y
+		double xDiff=this.getCoordX()-xOther;
+		double yDiff=this.getCoordY()-yOther;
+		
+		double squaredDist=Math.pow(xDiff, 2)+Math.pow(yDiff, 2);
+		return Math.sqrt(squaredDist);
+	}
+	
+}

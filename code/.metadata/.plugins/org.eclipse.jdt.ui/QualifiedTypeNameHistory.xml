@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="org.junit.rules.ExpectedException"/>
+<fullyQualifiedTypeName name="org.junit.Rule"/>
+<fullyQualifiedTypeName name="java.io.FileNotFoundException"/>
+<fullyQualifiedTypeName name="java.io.BufferedReader"/>
+<fullyQualifiedTypeName name="ex3.TwoDMatrices"/>
+<fullyQualifiedTypeName name="ex3.FunctionCallLogger"/>
+<fullyQualifiedTypeName name="ex3.ControlParamsES"/>
+<fullyQualifiedTypeName name="javax.xml.crypto.NoSuchMechanismException"/>
+<fullyQualifiedTypeName name="javax.lang.model.UnknownEntityException"/>
+<fullyQualifiedTypeName name="ex3.exceptions.UnknownInputParameterException"/>
+<fullyQualifiedTypeName name="java.io.FileOutputStream"/>
+<fullyQualifiedTypeName name="java.io.BufferedWriter"/>
+<fullyQualifiedTypeName name="java.io.OutputStreamWriter"/>
+<fullyQualifiedTypeName name="java.io.IOException"/>
+<fullyQualifiedTypeName name="java.io.Writer"/>
+<fullyQualifiedTypeName name="java.util.List"/>
+<fullyQualifiedTypeName name="ex3.Loggers.TabuLogger"/>
+<fullyQualifiedTypeName name="java.lang.Integer"/>
+<fullyQualifiedTypeName name="java.lang.IllegalArgumentException"/>
+<fullyQualifiedTypeName name="ex3.Exceptions.FunctionEvalLimitException"/>
+<fullyQualifiedTypeName name="ex3.Exceptions.AttributeNotCalulatedException"/>
+<fullyQualifiedTypeName name="ex3.ControlParameters.ControlParamsTS"/>
+<fullyQualifiedTypeName name="ex3.TSSpecificClasses.LocalSearch"/>
+<fullyQualifiedTypeName name="ex3.TSSpecificClasses.SearchDiversifier"/>
+<fullyQualifiedTypeName name="ex3.TSSpecificClasses.MediumTermMemory"/>
+<fullyQualifiedTypeName name="ex3.CoordinateHolder.Vector2"/>
+<fullyQualifiedTypeName name="ex3.Tests.TestConstants"/>
+<fullyQualifiedTypeName name="ex3.TSSpecificClasses.ShortTermMemory"/>
+<fullyQualifiedTypeName name="ex3.TSSpecificClasses.RunTS"/>
+<fullyQualifiedTypeName name="ex3.SwarmSpecificClasses.Bird"/>
+<fullyQualifiedTypeName name="ex3.Loggers.FunctionCallLogger"/>
+<fullyQualifiedTypeName name="ex3.coordinate_holder.Vector2"/>
+<fullyQualifiedTypeName name="java.util.Random"/>
+<fullyQualifiedTypeName name="ex3.exceptions.AttributeNotCalulatedException"/>
+<fullyQualifiedTypeName name="java.util.ArrayList"/>
+<fullyQualifiedTypeName name="java.util.Collections"/>
+<fullyQualifiedTypeName name="ex3.exceptions.FunctionEvalLimitException"/>
+<fullyQualifiedTypeName name="ex3.control_parameters.ControlParamsS"/>
+<fullyQualifiedTypeName name="ex3.loggers.BirdLogger"/>
+<fullyQualifiedTypeName name="ex3.swarm_specifics.RunSwarm"/>
+<fullyQualifiedTypeName name="ex3.FunctionDef"/>
+<fullyQualifiedTypeName name="ex3.loggers.FunctionCallLogger"/>
+<fullyQualifiedTypeName name="ex3.evolution_strategies_specifics.ESMember"/>
+<fullyQualifiedTypeName name="java.lang.System"/>
+</qualifiedTypeNameHistroy>

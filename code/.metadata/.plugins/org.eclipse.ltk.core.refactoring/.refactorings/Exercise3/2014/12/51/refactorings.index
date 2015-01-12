@@ -1,0 +1,42 @@
+1418583108065	Delete element
+1418596635064	Delete element
+1418673186570	Delete element
+1418673192737	Move compilation units
+1418673259380	Move compilation units
+1418684614653	Delete element
+1418685933878	Move compilation unit
+1418695545138	Rename type 'Pair'
+1418742479614	Rename type 'population'
+1418749560072	Rename local variable 'vars1'
+1418749570205	Rename local variable 'vars2'
+1418751074272	Delete element
+1418828853609	Move compilation unit
+1418828866335	Move compilation unit
+1418828899638	Move compilation unit
+1418828907136	Move compilation unit
+1418828917284	Move compilation unit
+1418828984030	Delete element
+1418829013749	Move compilation unit
+1418829058067	Rename package 'ex3.exceptions'
+1418829092879	Move compilation unit
+1418829130894	Move compilation unit
+1418829140040	Move compilation unit
+1418829148323	Move compilation unit
+1418836718385	Rename local variable 'scalingFactor'
+1418838957222	Rename type 'ShortTermmemory'
+1418854168122	Rename type 'memory'
+1419006212140	Move compilation unit
+1419078890300	Rename package 'ex3.AuxillaryMathsFunctions'
+1419078909754	Rename package 'ex3.ControlParameters'
+1419078927521	Rename package 'ex3.CoordinateHolder'
+1419078953274	Rename package 'ex3.ESSpecificClasses'
+1419078961915	Rename package 'ex3.Exceptions'
+1419078974190	Rename package 'ex3.FileOperations'
+1419078980989	Rename package 'ex3.Loggers'
+1419078997059	Rename package 'ex3.SwarmSpecificClasses'
+1419079006446	Rename package 'ex3.Tests'
+1419079025198	Rename package 'ex3.TSSpecificClasses'
+1419079309706	Rename type 'Logger'
+1419079332921	Rename type 'RunOptimisation'
+1419098547897	Rename method 'addToSurvingPopLog'
+1419116149512	Rename field 'insideFlag'

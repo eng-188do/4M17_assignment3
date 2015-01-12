@@ -1,0 +1,237 @@
+/**
+ * 
+ */
+package ex3.tabu_search_specifics;
+
+import ex3.FunctionDef;
+import ex3.control_parameters.ControlParamsTS;
+import ex3.coordinate_holder.Vector2;
+import ex3.exceptions.AttributeNotCalulatedException;
+import ex3.exceptions.FunctionEvalLimitException;
+import ex3.loggers.*;
+
+import java.util.*;
+
+/**
+ * @author eng-188do
+ * Class to act as an object performing the tabu search
+ */
+public final class LocalSearch {
+	/**
+	 * Constructor
+	 * @param rndIn : random number generator
+	 * @param cntrlIn : control parameters
+	 * @param fnIn : function logger and caller (ensures function evaluation limit is met)
+	 * @param tabLoggerIn : tabu search logger records the progress of the base points.
+	 */ 
+	public LocalSearch(Random rndIn, ControlParamsTS cntrlIn, FunctionCallLogger fnIn, TabuLogger tabLoggerIn){
+		rnd=rndIn;
+		cntrl=cntrlIn;
+		fn=fnIn;
+		tabLogger=tabLoggerIn;
+		mem=new Memory(rnd,tabLogger,cntrl);	//set up the memories 			
+	}
+	
+	//Members
+	private Memory mem; //stores all the memories (ie short term, medium term and long term)
+	private Random rnd; //random number generator
+	private ControlParamsTS cntrl; //control parameters
+	private FunctionCallLogger fn; //function logger and evaluator
+	private TabuLogger tabLogger; //tabu logger - stores base points.
+	
+	private int globalCounter=0; //this increases each time we start a new diversification/reduction etc to help with plotting.
+	private int counter=0; //this is COUNTER on page TS4 of the notes
+	private Vector2 basePoint; //this stores the current base point
+	private List<Vector2> potentialPoints=new ArrayList<Vector2>(); //stores potential points we are currently looking into.
+	private double increment; //this is how much we look in each direction.
+	
+	
+	//Methods
+	/**
+	 * Initialise the search in some random location.
+	 * @throws FunctionEvalLimitException if the number of function evaluations is over the limit.
+	 */
+	public void initialise() throws FunctionEvalLimitException{
+		basePoint=new Vector2(fn, FunctionDef.genRandomX(rnd),FunctionDef.genRandomY(rnd)); //generate randomly in the space.
+		addBasePointToLogAndMem(basePoint, false); //adds to log and memory.
+		increment=cntrl.getInitialIncrement(); //initial increment
+	}
+	
+	/**
+	 * Performs one iteration of local search.
+	 * @throws FunctionEvalLimitException
+	 */
+	public void performOneIterLocalSearch() throws FunctionEvalLimitException{
+		double currentBest=mem.getBstSolution(); //current best solution in the medium term memory
+		
+		if (counter==cntrl.getIntensifyCounter()) {
+			globalCounter++;
+			intensify(); //go to average best location, counter increases by 1					
+		}
+		if(		globalCounter<cntrl.getDiversifyStop() && //only diversify if still doing it.
+				( counter==cntrl.getDiversifyCounter() || counter==cntrl.getDiversify2() ) //and we have reached one of the two counters.
+												) {
+			globalCounter++;
+			diversify();  //go to new area to search, counter increases by 1			
+		}
+		if(counter==cntrl.getReduceCounter()){
+			globalCounter++;
+			reduce(); //reduce increment and reset counter.
+		}
+		
+		
+		populatePotentialMoves(); //assess four points around base point.
+		
+		//make the best move (+pattern move if applicable)
+		Vector2 newMove = makeBestPotentialMove();		
+		if (		newMove.getValue()<=basePoint.getValue()){  //note we change newMove here.
+			tryPatternMove(newMove);//if move was lower, we come here, so try pattern move
+		} else{ //if not add it to the base points and move on.
+			basePoint=newMove;
+			addBasePointToLogAndMem(basePoint,false);	
+		}
+		
+
+		if (basePoint.getValue()>currentBest) //if we haven't found a new better solution then the regular counter goes up.
+			counter++;
+		
+	}
+	
+	/**
+	 * Reduces the increment size and resets the counter.
+	 */
+	private void reduce(){
+		increment*=cntrl.getIntensificationFactor();
+		counter=0;
+	}
+	
+	/**
+	 * Intensifies the search by moving the base point to the average best location. Counter increases by 1
+	 * @throws FunctionEvalLimitException
+	 */
+	private void intensify() throws FunctionEvalLimitException{
+		double[] coord=mem.intensify(); //finds average best of all points in med. term memory
+		if (cntrl.getMtmSize() ==1)
+			mem.clearSTM();
+		basePoint=new Vector2(fn,coord[0], coord[1]);
+		addBasePointToLogAndMem(basePoint, false);
+		counter++; 
+	}
+	
+	/**
+	 * Diversifies the search by moving the abse point to an area of search space that has not been explored that thoroughly.
+	 * Counter increases by 1.
+	 * @throws FunctionEvalLimitException
+	 */
+	private void diversify() throws FunctionEvalLimitException {
+		double[] coord=mem.diversify(); //goes to an area we haven't looked that much at.
+		basePoint=new Vector2(fn,coord[0], coord[1]);
+		addBasePointToLogAndMem(basePoint, false);
+		counter++;
+	}
+	
+	
+	/**
+	 * Adds a base point to the taboo logger (we are not interested in the potential pooints here)- this stores all the points.
+	 * @param point in Vector2 form
+	 * @param patternMove whether the point came from a pattern move.
+	 * @throws FunctionEvalLimitException
+	 */
+	private void addPointToTabLogger(Vector2 point, boolean patternMove) throws FunctionEvalLimitException{
+		tabLogger.addMember(point.getCoordX(), point.getCoordY(), point.getValue(), globalCounter, counter, increment, patternMove);
+	}
+	
+	/**
+	 * Populates the list of potential moves by checking the 4 potential moves are valid.
+	 * @throws FunctionEvalLimitException
+	 */
+	private void populatePotentialMoves() throws FunctionEvalLimitException{
+		potentialPoints.clear();
+		
+		double x=basePoint.getCoordX();
+		double y=basePoint.getCoordY();
+		
+		//add the four new points (if they are allowed ie in range and not tabu
+		addnewPoint(x+increment,y);
+		addnewPoint(x-increment,y);
+		addnewPoint(x,y+increment);
+		addnewPoint(x,y-increment);
+		
+		if (potentialPoints.isEmpty()) //if we have not been able to generate any points something is probably wrong with the setup (eg too small area to search in)
+			throw new AttributeNotCalulatedException("We have not been able to find a new potential point - either they were out of range or taboo");
+	}
+	
+	/**
+	 * Makes the best move based on all the the potential points
+	 * @return ewBasePoint the new base point comes out in here (doesn't matter waht you feed in)
+	 * Note that we copy the best potential value to the newBasePoint, probably bad programming pratise but means less lines.
+	 */
+	private Vector2 makeBestPotentialMove(){		
+			Vector2 newBasePoint;
+			Collections.sort(potentialPoints);		
+			newBasePoint=potentialPoints.get(0); //get the lowest			
+			return newBasePoint;	
+	}
+	
+	/**
+	 * Adds a single potential point to the list of potential points if it is valid (ie in search space and not taboo)
+	 * @param x coord
+	 * @param y coord
+	 * @throws FunctionEvalLimitException
+	 */
+	private void addnewPoint(double x, double y) throws FunctionEvalLimitException{
+		if(isNewPointValid(x,y)){ //is the point within the allowed range?
+			Vector2 point= new Vector2(fn,x,y);
+			if (mem.addPotentialPoint(point)){//check if it's tabu
+				potentialPoints.add(point); //if it is not tabu we add it.
+			}
+		}
+	}
+	
+	/**
+	 * Checks new point is in range. (just a wrapper for FunctionDef's method for convenience)
+	 * @param x x coord
+	 * @param y y coord
+	 * @return true if allowed
+	 */
+	private boolean isNewPointValid(double x, double y){
+		return FunctionDef.checkInRange(x, y); 
+	}
+	
+	/**
+	 * Assesses a pattern move and updates the base point accordingly (ie either the halfWayPoint, or the pattern move result).
+	 * @param halfWayPoint the point which will be made the next base3 point.
+	 * @throws FunctionEvalLimitException thrown if the number of function evaluations is exceeded.
+	 */
+	private void tryPatternMove(Vector2 halfWayPoint) throws FunctionEvalLimitException{
+		double xChange=halfWayPoint.getCoordX()-basePoint.getCoordX(); //look at current change in x. we will repeat for pattern move (if applicable).
+		double yChange=halfWayPoint.getCoordY()-basePoint.getCoordY(); //same as above but with y.
+		
+		Vector2 patternResult=new Vector2(fn,halfWayPoint.getCoordX()+xChange,halfWayPoint.getCoordY()+yChange);
+		
+		if (isNewPointValid(patternResult.getCoordX(), patternResult.getCoordY()) &&
+			mem.addPotentialPoint(patternResult) &&
+			patternResult.getValue()<halfWayPoint.getValue() ){	//perform pattern move if it's valid (ie not taboo and in bounds) and lower
+												//Note the subtlety with the above if statement. && short circuits so we only add the potential point to memory IF
+												//it is in range - same as we would when we are assessing potential points.
+												//short circuiting means we also only get value if necessary.
+			basePoint=patternResult; //pattern move a success so make it the new base point.
+			addBasePointToLogAndMem(basePoint,true);
+		} else{ //don't perform the pattern move.
+			basePoint=halfWayPoint; //pattern move wasn't a success so don't make it the new base point.
+			addBasePointToLogAndMem(basePoint,false);
+		}
+	}
+	
+	/**
+	 * Adds a base point to both the memory and the log.
+	 * @param point the base point in question
+	 * @param patternMove whether it came from a pattern move or not.
+	 * @throws FunctionEvalLimitException
+	 */
+	private void addBasePointToLogAndMem(Vector2 point, boolean patternMove) throws FunctionEvalLimitException{
+		addPointToTabLogger(point, patternMove); //log
+		mem.addBasePt(point); //memory
+	}
+	
+}
